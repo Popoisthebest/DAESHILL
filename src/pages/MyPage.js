@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { getUserReservations, deleteReservation } from "../firebase/db";
+import {
+  getUserReservations,
+  deleteReservation,
+  updateUserProfile,
+} from "../firebase/db";
 import "../styles/common.css";
 
 const maskName = (name) => {
@@ -24,11 +28,16 @@ const formatStudentId = (studentId) => {
 };
 
 function MyPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, completeUserProfile } = useAuth();
   const navigate = useNavigate();
   const [userReservations, setUserReservations] = useState([]);
   const [loadingReservations, setLoadingReservations] = useState(true);
   const [reservationsError, setReservationsError] = useState("");
+  const [studentId, setStudentId] = useState(user?.studentId || "");
+  const [name, setName] = useState(user?.name || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -105,6 +114,26 @@ function MyPage() {
     });
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      if (!studentId.trim() || !name.trim()) {
+        throw new Error("학번과 이름을 모두 입력해주세요.");
+      }
+
+      await completeUserProfile(studentId, name);
+      setSuccess("프로필이 성공적으로 업데이트되었습니다.");
+    } catch (error) {
+      setError(error.message || "프로필 업데이트 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!user) {
     return (
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "2rem" }}>
@@ -131,33 +160,45 @@ function MyPage() {
         <h3 style={{ marginBottom: "1.5rem", color: "var(--primary-color)" }}>
           내 정보
         </h3>
-        <div style={{ display: "grid", gap: "1rem", marginBottom: "2rem" }}>
-          {user?.role !== "admin" && (
-            <p style={{ fontSize: "1.1rem", color: "var(--text-color)" }}>
-              <strong>학번:</strong> {formatStudentId(user.studentId)}
-            </p>
-          )}
-          <p style={{ fontSize: "1.1rem", color: "var(--text-color)" }}>
-            <strong>이름:</strong> {user.name}
-          </p>
-        </div>
-
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: "0.8rem 1.5rem",
-            backgroundColor: "#dc3545",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "1rem",
-            fontWeight: "bold",
-            transition: "background-color 0.3s ease",
-          }}
-        >
-          로그아웃
-        </button>
+        <form onSubmit={handleSubmit} className="profile-form">
+          <div className="form-group">
+            <label htmlFor="email">이메일</label>
+            <input
+              type="email"
+              id="email"
+              value={user.email}
+              disabled
+              className="form-control"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="studentId">학번</label>
+            <input
+              type="text"
+              id="studentId"
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+              className="form-control"
+              placeholder="학번을 입력하세요"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="name">이름</label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="form-control"
+              placeholder="이름을 입력하세요"
+            />
+          </div>
+          {error && <div className="error-message">{error}</div>}
+          {success && <div className="success-message">{success}</div>}
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? "저장 중..." : "저장하기"}
+          </button>
+        </form>
       </div>
 
       <div

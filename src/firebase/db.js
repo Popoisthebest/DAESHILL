@@ -263,3 +263,18 @@ export const getUserProfile = async (uid) => {
     throw error;
   }
 };
+
+// 사용자 프로필 업데이트
+export const updateUserProfile = async (uid, studentId, name) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, {
+      studentId,
+      name,
+      updatedAt: new Date(),
+    });
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    throw error;
+  }
+};
